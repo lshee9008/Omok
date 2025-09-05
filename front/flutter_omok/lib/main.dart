@@ -1,14 +1,22 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// --- 열거형 정의 ---
+// --- 열거형 및 상수 정의 ---
 enum GameMode { pvp, pvc }
 
 enum Player { none, black, white }
 
 enum Difficulty { easy, normal, hard }
+
+// 앱 전체에 사용될 뉴모피즘 스타일 색상
+const Color kBackgroundColor = Color(0xFFE0E5EC);
+const Color kDarkShadow = Color(0xFFA3B1C6);
+const Color kLightShadow = Color(0xFFFFFFFF);
+const Color kTextColor = Color(0xFF303030);
+const Color kAccentColor = Color(0xFF6D63FF);
 
 void main() {
   runApp(const OmokGameApp());
@@ -29,12 +37,10 @@ class GameStats {
   }) async {
     String key;
     if (mode == GameMode.pvc) {
-      key =
-          'pvc_${difficulty.toString().split('.').last}_wins'; // pvc_hard_wins
+      key = 'pvc_${difficulty.toString().split('.').last}_wins';
       await _prefs.setInt(key, (_prefs.getInt(key) ?? 0) + 1);
     } else {
-      // PvP
-      key = 'pvp_${winner.toString().split('.').last}_wins'; // pvp_black_wins
+      key = 'pvp_${winner.toString().split('.').last}_wins';
       await _prefs.setInt(key, (_prefs.getInt(key) ?? 0) + 1);
     }
   }
@@ -43,7 +49,6 @@ class GameStats {
     GameMode mode, {
     Difficulty? difficulty,
   }) async {
-    // PVC에서만 패배를 기록 (플레이어 기준)
     if (mode == GameMode.pvc) {
       String key = 'pvc_${difficulty.toString().split('.').last}_losses';
       await _prefs.setInt(key, (_prefs.getInt(key) ?? 0) + 1);
@@ -59,27 +64,29 @@ class GameStats {
   }
 }
 
+// --- 앱 진입점 ---
 class OmokGameApp extends StatelessWidget {
   const OmokGameApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 👇 이 FutureBuilder 부분이 모든 문제의 해결 열쇠입니다!
     return FutureBuilder(
-      // 1. 다른 어떤 것보다 먼저 GameStats.init()을 실행해서 저장소를 준비시킵니다.
       future: GameStats.init(),
       builder: (context, snapshot) {
-        // 2. 준비가 끝나면 (done)
         if (snapshot.connectionState == ConnectionState.done) {
-          // 3. 준비가 끝났을 때만 앱의 첫 화면(MainScreen)을 보여줍니다.
           return MaterialApp(
-            title: '숲속의 돌멩이 친구들',
-            theme: ThemeData(primarySwatch: Colors.brown, fontFamily: 'Gaegu'),
+            title: '프리미엄 오목',
+            theme: ThemeData(
+              scaffoldBackgroundColor: kBackgroundColor,
+              fontFamily: 'Pretendard', // Pretendard 폰트 사용 (없을 경우 시스템 폰트로 대체됨)
+            ),
             home: const MainScreen(),
           );
         }
-        // 준비가 아직 안 끝났다면 로딩 아이콘을 보여줍니다.
-        return const Center(child: CircularProgressIndicator());
+        return Container(
+          color: kBackgroundColor,
+          child: const Center(child: CircularProgressIndicator()),
+        );
       },
     );
   }
@@ -89,46 +96,45 @@ class OmokGameApp extends StatelessWidget {
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
-  // (이전 코드와 유사, '전적 보기' 버튼 추가)
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3EADF),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              '숲속의 오목',
+            Text(
+              'Premium Omok',
               style: TextStyle(
-                fontSize: 50,
+                fontSize: 42,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF5D4037),
+                color: kTextColor.withOpacity(0.8),
               ),
             ),
-            const SizedBox(height: 50),
-            _buildMenuButton(
-              context,
-              '컴퓨터와 대결',
-              () => _showDifficultyDialog(context),
+            const SizedBox(height: 60),
+            _NeumorphicButton(
+              text: '컴퓨터와 대결',
+              onPressed: () => _showDifficultyDialog(context),
             ),
-            const SizedBox(height: 20),
-            _buildMenuButton(context, '친구와 대결', () {
-              Navigator.push(
+            const SizedBox(height: 24),
+            _NeumorphicButton(
+              text: '친구와 대결',
+              onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
                       const GameScreen(gameMode: GameMode.pvp),
                 ),
-              );
-            }),
-            const SizedBox(height: 20),
-            _buildMenuButton(context, '전적 보기', () {
-              Navigator.push(
+              ),
+            ),
+            const SizedBox(height: 24),
+            _NeumorphicButton(
+              text: '전적 보기',
+              onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const StatsScreen()),
-              );
-            }),
+              ),
+            ),
           ],
         ),
       ),
@@ -136,28 +142,31 @@ class MainScreen extends StatelessWidget {
   }
 
   void _showDifficultyDialog(BuildContext context) {
-    /* 이전 코드와 동일 */
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFFF3EADF),
+          backgroundColor: kBackgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Center(
+          title: Center(
             child: Text(
               "난이도 선택",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: kTextColor.withOpacity(0.8),
+                fontSize: 22,
+              ),
             ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildDifficultyButton(context, "쉬움", Difficulty.easy),
-              const SizedBox(height: 10),
+              const SizedBox(height: 15),
               _buildDifficultyButton(context, "보통", Difficulty.normal),
-              const SizedBox(height: 10),
+              const SizedBox(height: 15),
               _buildDifficultyButton(context, "어려움", Difficulty.hard),
             ],
           ),
@@ -171,9 +180,8 @@ class MainScreen extends StatelessWidget {
     String text,
     Difficulty difficulty,
   ) {
-    /* 이전 코드와 동일 */
-    return ElevatedButton(
-      onPressed: () {
+    return GestureDetector(
+      onTap: () {
         Navigator.of(context).pop();
         Navigator.push(
           context,
@@ -183,48 +191,35 @@ class MainScreen extends StatelessWidget {
           ),
         );
       },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.brown[500],
-        foregroundColor: Colors.white,
-        minimumSize: const Size(double.infinity, 50),
-        textStyle: const TextStyle(fontSize: 18),
+      child: NeumorphicContainer(
+        height: 60,
+        width: double.infinity,
+        isCircle: false,
+        child: Center(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: kTextColor,
+            ),
+          ),
+        ),
       ),
-      child: Text(text),
-    );
-  }
-
-  Widget _buildMenuButton(
-    BuildContext context,
-    String text,
-    VoidCallback onPressed,
-  ) {
-    /* 이전 코드와 동일 */
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.brown[600],
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        textStyle: const TextStyle(fontSize: 22, fontFamily: 'Gaegu'),
-      ),
-      child: Text(text),
     );
   }
 }
 
-// --- 전적 보기 화면 ---
+// --- 전적 화면 ---
 class StatsScreen extends StatelessWidget {
   const StatsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final stats = GameStats.getStats();
-
     String getDifficulty(String key) => key.split('_')[1];
     int wins(String key) => stats[key] ?? 0;
     int losses(String key) => stats[key.replaceFirst('wins', 'losses')] ?? 0;
-
     List<Widget> pvcWidgets = stats.keys
         .where((k) => k.startsWith('pvc') && k.endsWith('wins'))
         .map(
@@ -240,15 +235,15 @@ class StatsScreen extends StatelessWidget {
           ),
         )
         .toList();
-
     int blackWins = stats['pvp_black_wins'] ?? 0;
     int whiteWins = stats['pvp_white_wins'] ?? 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3EADF),
       appBar: AppBar(
-        title: const Text("전적 보기"),
-        backgroundColor: Colors.brown[600],
+        title: const Text("전적 보기", style: TextStyle(color: kTextColor)),
+        backgroundColor: kBackgroundColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: kTextColor),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -278,7 +273,10 @@ class StatsScreen extends StatelessWidget {
               "백돌",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Text("$whiteWins 승", style: TextStyle(fontSize: 18)),
+            trailing: Text(
+              "$whiteWins 승",
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ],
       ),
@@ -286,7 +284,7 @@ class StatsScreen extends StatelessWidget {
   }
 }
 
-// --- 게임 화면 (타이머 기능 추가) ---
+// --- 게임 화면 ---
 class GameScreen extends StatefulWidget {
   final GameMode gameMode;
   final Difficulty? difficulty;
@@ -296,9 +294,10 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen>
+    with SingleTickerProviderStateMixin {
   static const int boardSize = 15;
-  static const int turnTimeLimit = 20; // 턴 제한 시간 (초)
+  static const int turnTimeLimit = 20;
 
   late List<List<Player>> _board;
   Player _currentPlayer = Player.black;
@@ -309,49 +308,33 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _timer;
   int _timeRemaining = turnTimeLimit;
 
+  late AnimationController _stonePlacementController;
+  late ConfettiController _confettiController;
+  Point<int>? _lastMove;
+  List<Point<int>> _winningLine = [];
+
   @override
   void initState() {
     super.initState();
     if (widget.gameMode == GameMode.pvc) {
       _ai = AILogic(boardSize: boardSize, difficulty: widget.difficulty!);
     }
+    _stonePlacementController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 1),
+    );
     _resetGame();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _stonePlacementController.dispose();
+    _confettiController.dispose();
     super.dispose();
-  }
-
-  void _startTimer() {
-    _timer?.cancel();
-    setState(() {
-      _timeRemaining = turnTimeLimit;
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_timeRemaining > 0) {
-          _timeRemaining--;
-        } else {
-          _timer?.cancel();
-          _handleTimeout();
-        }
-      });
-    });
-  }
-
-  void _handleTimeout() {
-    if (_isGameOver) return;
-    setState(() {
-      _isGameOver = true;
-      Player winner = _currentPlayer == Player.black
-          ? Player.white
-          : Player.black;
-      _statusMessage =
-          "${_getPlayerName(_currentPlayer)} 시간 초과! ${_getPlayerName(winner)} 승리!";
-      _recordGameResult(winner: winner);
-    });
   }
 
   void _resetGame() {
@@ -362,9 +345,54 @@ class _GameScreenState extends State<GameScreen> {
       );
       _currentPlayer = Player.black;
       _isGameOver = false;
-      _statusMessage = widget.gameMode == GameMode.pvc
-          ? "당신의 차례입니다"
-          : "흑돌의 차례입니다";
+      _statusMessage = '${_getPlayerName(_currentPlayer)}의 차례';
+      _lastMove = null;
+      _winningLine = [];
+      _startTimer();
+    });
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() {
+      _timeRemaining = turnTimeLimit;
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isGameOver) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_timeRemaining > 0) {
+          _timeRemaining--;
+        } else {
+          timer.cancel();
+          _handleTimeout();
+        }
+      });
+    });
+  }
+
+  void _handleTimeout() {
+    if (_isGameOver) return;
+    _timer?.cancel();
+    setState(() {
+      _isGameOver = true;
+      Player winner = _currentPlayer == Player.black
+          ? Player.white
+          : Player.black;
+      _statusMessage = "${_getPlayerName(_currentPlayer)} 시간 초과!";
+      _recordGameResult(winner: winner);
+      _showGameOverDialog(isTimeout: true);
+    });
+  }
+
+  void _switchPlayer() {
+    setState(() {
+      _currentPlayer = (_currentPlayer == Player.black)
+          ? Player.white
+          : Player.black;
+      _statusMessage = '${_getPlayerName(_currentPlayer)}의 차례';
       _startTimer();
     });
   }
@@ -374,57 +402,36 @@ class _GameScreenState extends State<GameScreen> {
 
     setState(() {
       _board[row][col] = _currentPlayer;
+      _lastMove = Point(row, col);
+      _stonePlacementController.forward(from: 0.0);
     });
 
     if (_checkWin(row, col)) {
       _timer?.cancel();
       setState(() {
         _isGameOver = true;
-        _statusMessage = '${_getPlayerName(_currentPlayer)}의 승리! 🎉';
+        _statusMessage = '${_getPlayerName(_currentPlayer)}의 승리!';
       });
       _recordGameResult(winner: _currentPlayer);
+      _showGameOverDialog();
       return;
     }
     _switchPlayer();
   }
 
-  void _recordGameResult({required Player winner}) {
-    if (widget.gameMode == GameMode.pvc) {
-      if (winner == Player.black) {
-        // 플레이어 승리
-        GameStats.recordWin(GameMode.pvc, difficulty: widget.difficulty);
-      } else {
-        // 컴퓨터 승리
-        GameStats.recordLoss(GameMode.pvc, difficulty: widget.difficulty);
-      }
-    } else {
-      // PvP
-      GameStats.recordWin(GameMode.pvp, winner: winner);
-    }
-  }
-
-  void _switchPlayer() {
-    setState(() {
-      _currentPlayer = (_currentPlayer == Player.black)
-          ? Player.white
-          : Player.black;
-      _statusMessage = '${_getPlayerName(_currentPlayer)}의 차례입니다';
-      _startTimer();
-    });
-  }
-
   void _handleTap(int row, int col) {
-    if (_isGameOver || _board[row][col] != Player.none) return;
+    if (_isGameOver ||
+        (widget.gameMode == GameMode.pvc && _currentPlayer == Player.white))
+      return;
     _placeStone(row, col);
-
     if (widget.gameMode == GameMode.pvc &&
         !_isGameOver &&
         _currentPlayer == Player.white) {
       setState(() {
         _statusMessage = "컴퓨터가 생각 중...";
       });
-      _timer?.cancel(); // 컴퓨터 생각 중에는 타이머 멈춤
-      Timer(const Duration(milliseconds: 500), _computerMove);
+      _timer?.cancel();
+      Timer(const Duration(milliseconds: 700), _computerMove);
     }
   }
 
@@ -434,10 +441,21 @@ class _GameScreenState extends State<GameScreen> {
     _placeStone(bestMove.x, bestMove.y);
   }
 
-  // ... 이하 _getPlayerName, _checkWin, build 메서드는 이전 코드와 동일 ...
+  void _recordGameResult({required Player winner}) {
+    if (widget.gameMode == GameMode.pvc) {
+      if (winner == Player.black) {
+        GameStats.recordWin(GameMode.pvc, difficulty: widget.difficulty);
+      } else {
+        GameStats.recordLoss(GameMode.pvc, difficulty: widget.difficulty);
+      }
+    } else {
+      GameStats.recordWin(GameMode.pvp, winner: winner);
+    }
+  }
+
   String _getPlayerName(Player player) {
     if (widget.gameMode == GameMode.pvc) {
-      return player == Player.black ? "당신" : "컴퓨터";
+      return player == Player.black ? "플레이어" : "컴퓨터";
     } else {
       return player == Player.black ? "흑돌" : "백돌";
     }
@@ -454,172 +472,215 @@ class _GameScreenState extends State<GameScreen> {
     ];
     for (var dir in directions) {
       int count = 1;
+      List<Point<int>> line = [Point(row, col)];
       for (int i = 1; i < 5; i++) {
-        int nextRow = row + dir[0] * i, nextCol = col + dir[1] * i;
-        if (nextRow >= 0 &&
-            nextRow < boardSize &&
-            nextCol >= 0 &&
-            nextCol < boardSize &&
-            _board[nextRow][nextCol] == player)
+        int r = row + dir[0] * i, c = col + dir[1] * i;
+        if (r >= 0 &&
+            r < boardSize &&
+            c >= 0 &&
+            c < boardSize &&
+            _board[r][c] == player) {
           count++;
-        else
+          line.add(Point(r, c));
+        } else
           break;
       }
       for (int i = 1; i < 5; i++) {
-        int nextRow = row - dir[0] * i, nextCol = col - dir[1] * i;
-        if (nextRow >= 0 &&
-            nextRow < boardSize &&
-            nextCol >= 0 &&
-            nextCol < boardSize &&
-            _board[nextRow][nextCol] == player)
+        int r = row - dir[0] * i, c = col - dir[1] * i;
+        if (r >= 0 &&
+            r < boardSize &&
+            c >= 0 &&
+            c < boardSize &&
+            _board[r][c] == player) {
           count++;
-        else
+          line.add(Point(r, c));
+        } else
           break;
       }
-      if (count >= 5) return true;
+      if (count >= 5) {
+        setState(() => _winningLine = line);
+        return true;
+      }
     }
     return false;
+  }
+
+  void _showGameOverDialog({bool isTimeout = false}) {
+    if (!isTimeout) _confettiController.play();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          AlertDialog(
+            backgroundColor: kBackgroundColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Center(
+              child: Text(
+                "🎉 GAME OVER 🎉",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: kTextColor.withOpacity(0.8),
+                ),
+              ),
+            ),
+            content: Text(
+              _statusMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20),
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                child: const Text(
+                  "다시하기",
+                  style: TextStyle(fontSize: 16, color: kAccentColor),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _resetGame();
+                },
+              ),
+              TextButton(
+                child: const Text(
+                  "메인으로",
+                  style: TextStyle(fontSize: 16, color: kAccentColor),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+          if (!isTimeout)
+            ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              emissionFrequency: 0.05,
+            ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3EADF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.brown[700]),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: BackButton(color: kTextColor.withOpacity(0.7)),
       ),
       body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 타이머 UI 추가
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildTimerDisplay(Player.black),
-                  Text(
-                    '숲속의 오목',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown[700],
-                    ),
-                  ),
-                  _buildTimerDisplay(Player.white),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              _statusMessage,
-              style: TextStyle(fontSize: 24, color: Colors.brown[600]),
-            ),
-            const SizedBox(height: 10),
-            AspectRatio(
-              aspectRatio: 1.0,
-              child: Container(
-                decoration: BoxDecoration(
-                  image: const DecorationImage(
-                    image: AssetImage('assets/wood_board.png'),
-                    fit: BoxFit.cover,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                margin: const EdgeInsets.all(16),
-                child: GestureDetector(
-                  onTapUp: (details) {
-                    if (widget.gameMode == GameMode.pvc &&
-                        _currentPlayer == Player.white)
-                      return;
-                    final size = context.size?.width ?? 300;
-                    final squareSize = (size - 32) / (boardSize - 1);
-                    final row = (details.localPosition.dy / squareSize).round();
-                    final col = (details.localPosition.dx / squareSize).round();
-                    _handleTap(row, col);
-                  },
-                  child: CustomPaint(
-                    painter: BoardPainter(board: _board, boardSize: boardSize),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _resetGame,
-              icon: const Icon(Icons.refresh),
-              label: const Text('다시하기', style: TextStyle(fontSize: 18)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.brown[600],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 15,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildPlayerInfo(),
+              const Spacer(),
+              _buildBoard(),
+              const Spacer(),
+              _NeumorphicButton(icon: Icons.refresh, onPressed: _resetGame),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // 타이머 UI 위젯
-  Widget _buildTimerDisplay(Player player) {
-    bool isCurrentTurn = _currentPlayer == player && !_isGameOver;
-    return Column(
+  Widget _buildPlayerInfo() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        Text(
-          _getPlayerName(player),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isCurrentTurn ? Colors.red[700] : Colors.brown[800],
-          ),
+        _PlayerIndicator(
+          name: _getPlayerName(Player.black),
+          isTurn: _currentPlayer == Player.black && !_isGameOver,
+          time: _currentPlayer == Player.black ? _timeRemaining : turnTimeLimit,
         ),
-        const SizedBox(height: 4),
-        Text(
-          isCurrentTurn ? '$_timeRemaining' : '-',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: isCurrentTurn ? Colors.red[700] : Colors.brown[800],
-          ),
+        _PlayerIndicator(
+          name: _getPlayerName(Player.white),
+          isTurn: _currentPlayer == Player.white && !_isGameOver,
+          time: _currentPlayer == Player.white ? _timeRemaining : turnTimeLimit,
         ),
       ],
     );
   }
+
+  Widget _buildBoard() {
+    // 👇 LayoutBuilder 위젯으로 감싸서 정확한 보드 크기를 얻습니다.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // constraints.maxWidth는 화면 전체가 아닌, 이 위젯이 가질 수 있는 실제 너비입니다.
+        final boardSizeDimension = constraints.maxWidth;
+
+        return NeumorphicContainer(
+          width: boardSizeDimension,
+          height: boardSizeDimension,
+          isCircle: false,
+          child: GestureDetector(
+            onTapUp: (details) {
+              if (widget.gameMode == GameMode.pvc &&
+                  _currentPlayer == Player.white)
+                return;
+
+              // 👇 기존 context.size 대신 정확한 boardSizeDimension을 사용합니다.
+              final squareSize = boardSizeDimension / (boardSize - 1);
+              final row = (details.localPosition.dy / squareSize).round();
+              final col = (details.localPosition.dx / squareSize).round();
+
+              if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
+                _handleTap(row, col);
+              }
+            },
+            child: AnimatedBuilder(
+              animation: _stonePlacementController,
+              builder: (context, child) => CustomPaint(
+                painter: BoardPainter(
+                  board: _board,
+                  boardSize: boardSize,
+                  lastMove: _lastMove,
+                  animationValue: _stonePlacementController.value,
+                  winningLine: _winningLine,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-// --- BoardPainter와 AILogic 클래스 ---
-// (이전 코드와 완전히 동일하므로 생략하지 않고 포함합니다)
+// --- 커스텀 페인터 (돌과 보드 그리기) ---
 class BoardPainter extends CustomPainter {
   final List<List<Player>> board;
   final int boardSize;
-  BoardPainter({required this.board, required this.boardSize});
+  final Point<int>? lastMove;
+  final double animationValue;
+  final List<Point<int>> winningLine;
+
+  BoardPainter({
+    required this.board,
+    required this.boardSize,
+    this.lastMove,
+    required this.animationValue,
+    required this.winningLine,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
     final double squareSize = size.width / (boardSize - 1);
     final Paint linePaint = Paint()
-      ..color = Colors.brown[800]!
-      ..strokeWidth = 1.5;
+      ..color = kDarkShadow.withOpacity(0.5)
+      ..strokeWidth = 1.0;
+
     for (int i = 0; i < boardSize; i++) {
       canvas.drawLine(
         Offset(0, i * squareSize),
@@ -632,38 +693,52 @@ class BoardPainter extends CustomPainter {
         linePaint,
       );
     }
-    final Paint dotPaint = Paint()..color = Colors.brown[800]!;
-    final double dotRadius = 4.0;
-    final List<Point<int>> dotPositions = [
-      Point(3, 3),
-      Point(3, 11),
-      Point(11, 3),
-      Point(11, 11),
-      Point(7, 7),
-    ];
-    for (var pos in dotPositions) {
-      canvas.drawCircle(
-        Offset(pos.x * squareSize, pos.y * squareSize),
-        dotRadius,
-        dotPaint,
-      );
-    }
+
     final double stoneRadius = squareSize / 2.2;
     for (int i = 0; i < boardSize; i++) {
       for (int j = 0; j < boardSize; j++) {
         if (board[i][j] != Player.none) {
-          final stonePaint = Paint();
           final center = Offset(j * squareSize, i * squareSize);
-          final shadowPaint = Paint()
-            ..color = Colors.black.withOpacity(0.4)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
-          canvas.drawCircle(center.translate(2, 2), stoneRadius, shadowPaint);
-          stonePaint.color = (board[i][j] == Player.black)
-              ? const Color(0xFF333333)
-              : const Color(0xFFFAFAFA);
-          canvas.drawCircle(center, stoneRadius, stonePaint);
+          bool isLastMove = lastMove?.x == i && lastMove?.y == j;
+          double scale = isLastMove
+              ? (0.8 + 0.2 * Curves.easeOut.transform(animationValue))
+              : 1.0;
+          double currentRadius = stoneRadius * scale;
+
+          final rect = Rect.fromCircle(center: center, radius: currentRadius);
+          final stonePaint = Paint();
+
+          if (board[i][j] == Player.black) {
+            stonePaint.shader = const RadialGradient(
+              colors: [Color(0xFF414141), Color(0xFF101010)],
+            ).createShader(rect);
+          } else {
+            stonePaint.shader = const RadialGradient(
+              colors: [kLightShadow, kBackgroundColor],
+              stops: [0.7, 1.0],
+            ).createShader(rect);
+          }
+          canvas.drawCircle(center, currentRadius, stonePaint);
         }
       }
+    }
+
+    if (winningLine.isNotEmpty) {
+      final linePaint = Paint()
+        ..color = kAccentColor.withOpacity(0.8)
+        ..strokeWidth = 6.0
+        ..strokeCap = StrokeCap.round;
+      Point start = winningLine.reduce(
+        (a, b) => a.x < b.x || (a.x == b.x && a.y < b.y) ? a : b,
+      );
+      Point end = winningLine.reduce(
+        (a, b) => a.x > b.x || (a.x == b.x && a.y > b.y) ? a : b,
+      );
+      canvas.drawLine(
+        Offset(start.y * squareSize, start.x * squareSize),
+        Offset(end.y * squareSize, end.x * squareSize),
+        linePaint,
+      );
     }
   }
 
@@ -671,14 +746,148 @@ class BoardPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
+// --- 커스텀 위젯들 ---
+class _NeumorphicButton extends StatelessWidget {
+  final String? text;
+  final IconData? icon;
+  final VoidCallback onPressed;
+  const _NeumorphicButton({this.text, this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: NeumorphicContainer(
+        width: text != null ? 240 : 70,
+        height: 70,
+        isCircle: text == null,
+        child: Center(
+          child: text != null
+              ? Text(
+                  text!,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: kTextColor,
+                  ),
+                )
+              : Icon(icon, size: 30, color: kTextColor.withOpacity(0.8)),
+        ),
+      ),
+    );
+  }
+}
+
+class NeumorphicContainer extends StatelessWidget {
+  final double? width;
+  final double? height;
+  final Widget child;
+  final bool isCircle;
+  const NeumorphicContainer({
+    super.key,
+    this.width,
+    this.height,
+    required this.child,
+    this.isCircle = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: kBackgroundColor,
+        borderRadius: isCircle ? null : BorderRadius.circular(20),
+        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+        boxShadow: const [
+          BoxShadow(
+            color: kDarkShadow,
+            offset: Offset(5, 5),
+            blurRadius: 15,
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: kLightShadow,
+            offset: Offset(-5, -5),
+            blurRadius: 15,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _PlayerIndicator extends StatelessWidget {
+  final String name;
+  final bool isTurn;
+  final int time;
+  const _PlayerIndicator({
+    required this.name,
+    required this.isTurn,
+    required this.time,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: 150,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: kBackgroundColor,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: isTurn
+            ? const [
+                BoxShadow(color: kAccentColor, blurRadius: 10, spreadRadius: 2),
+                BoxShadow(
+                  color: kDarkShadow,
+                  offset: Offset(3, 3),
+                  blurRadius: 10,
+                ),
+                BoxShadow(
+                  color: kLightShadow,
+                  offset: Offset(-3, -3),
+                  blurRadius: 10,
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        children: [
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isTurn ? kAccentColor : kTextColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "$time초",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: time <= 5 ? Colors.red : kTextColor.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- AI 로직 클래스 ---
 class AILogic {
   final int boardSize;
   final Difficulty difficulty;
   AILogic({required this.boardSize, required this.difficulty});
+
   Point<int> findBestMove(List<List<Player>> board) {
-    if (difficulty == Difficulty.easy) {
-      return _findBestMoveEasy(board);
-    }
+    if (difficulty == Difficulty.easy) return _findBestMoveEasy(board);
     int bestScore = -1;
     Point<int> bestMove = const Point(-1, -1);
     var tempBoard = board.map((row) => List<Player>.from(row)).toList();
@@ -781,8 +990,7 @@ class AILogic {
     Player player,
     List<List<Player>> board,
   ) {
-    int count = 1;
-    int openEnds = 0;
+    int count = 1, openEnds = 0;
     for (int i = 1; i < 5; i++) {
       int nr = r + dr * i, nc = c + dc * i;
       if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize) {
