@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // --- 열거형 및 상수 정의 ---
 enum GameMode { pvp, pvc }
@@ -11,12 +12,18 @@ enum Player { none, black, white }
 
 enum Difficulty { easy, normal, hard }
 
-// 앱 전체에 사용될 뉴모피즘 스타일 색상
-const Color kBackgroundColor = Color(0xFFE0E5EC);
-const Color kDarkShadow = Color(0xFFA3B1C6);
-const Color kLightShadow = Color(0xFFFFFFFF);
-const Color kTextColor = Color(0xFF303030);
-const Color kAccentColor = Color(0xFF6D63FF);
+// 테마 색상 정의 (더 센스 있고 플레이에 집중할 수 있도록 재조정)
+const Color kBackgroundColor = Color(0xFFF0F4F8); // 메인 배경 (은은한 회색)
+const Color kBoardColor = Color(0xFFD2B48C); // 오목판 배경색 (나무색)
+const Color kBoardLineColor = Color(0xFF8B4513); // 오목판 라인 (진한 나무색)
+const Color kStoneBlackColor = Color(0xFF212121); // 흑돌 색상
+const Color kStoneWhiteColor = Color(0xFFF0F0F0); // 백돌 색상
+const Color kHighlightColor = Color(0xFF6D9F71); // 강조색 (초록색 계열)
+const Color kAccentColor = Color(000000); // UI 포인트 색상 (파란색 계열)
+const Color kDangerColor = Color(0xFFE57373); // 경고색 (빨간색)
+const Color kTextColor = Color(0xFF424242); // 기본 텍스트 색상
+const Color kShadowColorDark = Color(0xFFA3B1C6); // 뉴모피즘 어두운 그림자
+const Color kShadowColorLight = Color(0xFFFFFFFF); // 뉴모피즘 밝은 그림자
 
 void main() {
   runApp(const OmokGameApp());
@@ -78,14 +85,29 @@ class OmokGameApp extends StatelessWidget {
             title: '프리미엄 오목',
             theme: ThemeData(
               scaffoldBackgroundColor: kBackgroundColor,
-              fontFamily: 'Pretendard', // Pretendard 폰트 사용 (없을 경우 시스템 폰트로 대체됨)
+              textTheme: GoogleFonts.juaTextTheme(
+                // Jua 폰트 적용 (더 귀엽고 가독성 좋음)
+                Theme.of(context).textTheme.apply(bodyColor: kTextColor),
+              ),
+              appBarTheme: AppBarTheme(
+                backgroundColor: kBackgroundColor,
+                elevation: 0,
+                iconTheme: const IconThemeData(color: kTextColor),
+                titleTextStyle: GoogleFonts.jua(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: kTextColor,
+                ),
+              ),
             ),
             home: const MainScreen(),
           );
         }
         return Container(
           color: kBackgroundColor,
-          child: const Center(child: CircularProgressIndicator()),
+          child: const Center(
+            child: CircularProgressIndicator(color: kHighlightColor),
+          ),
         );
       },
     );
@@ -93,8 +115,35 @@ class OmokGameApp extends StatelessWidget {
 }
 
 // --- 메인 화면 ---
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
+  late AnimationController _titleController;
+  late Animation<Offset> _titleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..forward();
+    _titleAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.5), end: Offset.zero).animate(
+          CurvedAnimation(parent: _titleController, curve: Curves.elasticOut),
+        );
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,37 +152,44 @@ class MainScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Premium Omok',
-              style: TextStyle(
-                fontSize: 42,
-                fontWeight: FontWeight.bold,
-                color: kTextColor.withOpacity(0.8),
+            SlideTransition(
+              position: _titleAnimation,
+              child: Text(
+                '프리미엄 오목',
+                style: GoogleFonts.jua(
+                  fontSize: 60,
+                  fontWeight: FontWeight.bold,
+                  color: kTextColor,
+                ),
               ),
             ),
-            const SizedBox(height: 60),
+            const SizedBox(height: 50),
             _NeumorphicButton(
               text: '컴퓨터와 대결',
               onPressed: () => _showDifficultyDialog(context),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _NeumorphicButton(
               text: '친구와 대결',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const GameScreen(gameMode: GameMode.pvp),
-                ),
-              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const GameScreen(gameMode: GameMode.pvp),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _NeumorphicButton(
               text: '전적 보기',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const StatsScreen()),
-              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const StatsScreen()),
+                );
+              },
             ),
           ],
         ),
@@ -153,10 +209,10 @@ class MainScreen extends StatelessWidget {
           title: Center(
             child: Text(
               "난이도 선택",
-              style: TextStyle(
+              style: GoogleFonts.jua(
                 fontWeight: FontWeight.bold,
-                color: kTextColor.withOpacity(0.8),
-                fontSize: 22,
+                color: kTextColor,
+                fontSize: 32,
               ),
             ),
           ),
@@ -180,8 +236,12 @@ class MainScreen extends StatelessWidget {
     String text,
     Difficulty difficulty,
   ) {
-    return GestureDetector(
-      onTap: () {
+    return _NeumorphicButton(
+      height: 60,
+      width: double.infinity,
+      isCircle: false,
+      text: text,
+      onPressed: () {
         Navigator.of(context).pop();
         Navigator.push(
           context,
@@ -191,21 +251,6 @@ class MainScreen extends StatelessWidget {
           ),
         );
       },
-      child: NeumorphicContainer(
-        height: 60,
-        width: double.infinity,
-        isCircle: false,
-        child: Center(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: kTextColor,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -217,65 +262,85 @@ class StatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stats = GameStats.getStats();
+
     String getDifficulty(String key) => key.split('_')[1];
     int wins(String key) => stats[key] ?? 0;
     int losses(String key) => stats[key.replaceFirst('wins', 'losses')] ?? 0;
+
     List<Widget> pvcWidgets = stats.keys
         .where((k) => k.startsWith('pvc') && k.endsWith('wins'))
         .map(
           (key) => ListTile(
             title: Text(
               "컴퓨터 (${getDifficulty(key)})",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.jua(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: kTextColor,
+              ),
             ),
             trailing: Text(
               "${wins(key)}승 ${losses(key)}패",
-              style: const TextStyle(fontSize: 18),
+              style: GoogleFonts.jua(fontSize: 22, color: kTextColor),
             ),
           ),
         )
         .toList();
+
     int blackWins = stats['pvp_black_wins'] ?? 0;
     int whiteWins = stats['pvp_white_wins'] ?? 0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("전적 보기", style: TextStyle(color: kTextColor)),
-        backgroundColor: kBackgroundColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: kTextColor),
-      ),
+      appBar: AppBar(title: const Text("전적 보기")),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          const Text(
+          Text(
             "VS 컴퓨터",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: GoogleFonts.jua(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: kTextColor,
+            ),
           ),
+          const SizedBox(height: 10),
           ...pvcWidgets,
           const Divider(height: 40),
-          const Text(
+          Text(
             "VS 친구",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: GoogleFonts.jua(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: kTextColor,
+            ),
           ),
+          const SizedBox(height: 10),
           ListTile(
-            title: const Text(
+            title: Text(
               "흑돌",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.jua(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: kTextColor,
+              ),
             ),
             trailing: Text(
               "$blackWins 승",
-              style: const TextStyle(fontSize: 18),
+              style: GoogleFonts.jua(fontSize: 22, color: kTextColor),
             ),
           ),
           ListTile(
-            title: const Text(
+            title: Text(
               "백돌",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.jua(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: kTextColor,
+              ),
             ),
             trailing: Text(
               "$whiteWins 승",
-              style: const TextStyle(fontSize: 18),
+              style: GoogleFonts.jua(fontSize: 22, color: kTextColor),
             ),
           ),
         ],
@@ -294,8 +359,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with SingleTickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const int boardSize = 15;
   static const int turnTimeLimit = 20;
 
@@ -308,10 +372,16 @@ class _GameScreenState extends State<GameScreen>
   Timer? _timer;
   int _timeRemaining = turnTimeLimit;
 
+  // 애니메이션 & 효과
   late AnimationController _stonePlacementController;
   late ConfettiController _confettiController;
   Point<int>? _lastMove;
   List<Point<int>> _winningLine = [];
+
+  // 게임 상태 메시지 애니메이션
+  late AnimationController _statusMessageController;
+  late Animation<double> _statusMessageFadeAnimation;
+  late Animation<Offset> _statusMessageSlideAnimation;
 
   @override
   void initState() {
@@ -320,12 +390,28 @@ class _GameScreenState extends State<GameScreen>
       _ai = AILogic(boardSize: boardSize, difficulty: widget.difficulty!);
     }
     _stonePlacementController = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
     _confettiController = ConfettiController(
-      duration: const Duration(seconds: 1),
+      duration: const Duration(seconds: 2),
     );
+
+    _statusMessageController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _statusMessageFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _statusMessageController, curve: Curves.easeIn),
+    );
+    _statusMessageSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.2), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _statusMessageController,
+            curve: Curves.easeOut,
+          ),
+        );
+
     _resetGame();
   }
 
@@ -334,6 +420,7 @@ class _GameScreenState extends State<GameScreen>
     _timer?.cancel();
     _stonePlacementController.dispose();
     _confettiController.dispose();
+    _statusMessageController.dispose();
     super.dispose();
   }
 
@@ -348,6 +435,7 @@ class _GameScreenState extends State<GameScreen>
       _statusMessage = '${_getPlayerName(_currentPlayer)}의 차례';
       _lastMove = null;
       _winningLine = [];
+      _statusMessageController.forward(from: 0.0);
       _startTimer();
     });
   }
@@ -381,10 +469,13 @@ class _GameScreenState extends State<GameScreen>
       Player winner = _currentPlayer == Player.black
           ? Player.white
           : Player.black;
-      _statusMessage = "${_getPlayerName(_currentPlayer)} 시간 초과!";
-      _recordGameResult(winner: winner);
-      _showGameOverDialog(isTimeout: true);
+      _statusMessage =
+          "${_getPlayerName(_currentPlayer)} 시간 초과!\n${_getPlayerName(winner)} 승리!";
     });
+    _recordGameResult(
+      winner: _currentPlayer == Player.black ? Player.white : Player.black,
+    ); // 시간 초과한 플레이어가 패배
+    _showGameOverDialog(isTimeout: true);
   }
 
   void _switchPlayer() {
@@ -393,6 +484,7 @@ class _GameScreenState extends State<GameScreen>
           ? Player.white
           : Player.black;
       _statusMessage = '${_getPlayerName(_currentPlayer)}의 차례';
+      _statusMessageController.forward(from: 0.0);
       _startTimer();
     });
   }
@@ -429,6 +521,7 @@ class _GameScreenState extends State<GameScreen>
         _currentPlayer == Player.white) {
       setState(() {
         _statusMessage = "컴퓨터가 생각 중...";
+        _statusMessageController.forward(from: 0.0);
       });
       _timer?.cancel();
       Timer(const Duration(milliseconds: 700), _computerMove);
@@ -520,24 +613,25 @@ class _GameScreenState extends State<GameScreen>
             ),
             title: Center(
               child: Text(
-                "🎉 GAME OVER 🎉",
-                style: TextStyle(
+                isTimeout ? "시간 초과!" : "🎉 게임 종료 🎉",
+                style: GoogleFonts.jua(
                   fontWeight: FontWeight.bold,
-                  color: kTextColor.withOpacity(0.8),
+                  color: kTextColor,
+                  fontSize: 36,
                 ),
               ),
             ),
             content: Text(
               _statusMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20),
+              style: GoogleFonts.jua(fontSize: 28, color: kTextColor),
             ),
             actionsAlignment: MainAxisAlignment.center,
             actions: [
               TextButton(
-                child: const Text(
+                child: Text(
                   "다시하기",
-                  style: TextStyle(fontSize: 16, color: kAccentColor),
+                  style: GoogleFonts.jua(fontSize: 24, color: kHighlightColor),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -545,9 +639,9 @@ class _GameScreenState extends State<GameScreen>
                 },
               ),
               TextButton(
-                child: const Text(
+                child: Text(
                   "메인으로",
-                  style: TextStyle(fontSize: 16, color: kAccentColor),
+                  style: GoogleFonts.jua(fontSize: 24, color: kHighlightColor),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -562,6 +656,12 @@ class _GameScreenState extends State<GameScreen>
               blastDirectionality: BlastDirectionality.explosive,
               shouldLoop: false,
               emissionFrequency: 0.05,
+              colors: const [
+                kHighlightColor,
+                kAccentColor,
+                Colors.blueAccent,
+                Colors.purpleAccent,
+              ],
             ),
         ],
       ),
@@ -572,9 +672,14 @@ class _GameScreenState extends State<GameScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: BackButton(color: kTextColor.withOpacity(0.7)),
+        title: Text(
+          '프리미엄 오목',
+          style: GoogleFonts.jua(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: kTextColor,
+          ),
+        ),
       ),
       body: SafeArea(
         child: Padding(
@@ -583,10 +688,28 @@ class _GameScreenState extends State<GameScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildPlayerInfo(),
+              const SizedBox(height: 20),
+              FadeTransition(
+                opacity: _statusMessageFadeAnimation,
+                child: SlideTransition(
+                  position: _statusMessageSlideAnimation,
+                  child: Text(
+                    _statusMessage,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.jua(fontSize: 30, color: kTextColor),
+                  ),
+                ),
+              ),
               const Spacer(),
               _buildBoard(),
               const Spacer(),
-              _NeumorphicButton(icon: Icons.refresh, onPressed: _resetGame),
+              _NeumorphicButton(
+                icon: Icons.refresh,
+                onPressed: _resetGame,
+                isCircle: true,
+                width: 70,
+                height: 70,
+              ),
               const SizedBox(height: 20),
             ],
           ),
@@ -603,21 +726,23 @@ class _GameScreenState extends State<GameScreen>
           name: _getPlayerName(Player.black),
           isTurn: _currentPlayer == Player.black && !_isGameOver,
           time: _currentPlayer == Player.black ? _timeRemaining : turnTimeLimit,
+          playerColor: kStoneBlackColor,
+          turnTimeLimit: turnTimeLimit,
         ),
         _PlayerIndicator(
           name: _getPlayerName(Player.white),
           isTurn: _currentPlayer == Player.white && !_isGameOver,
           time: _currentPlayer == Player.white ? _timeRemaining : turnTimeLimit,
+          playerColor: kStoneWhiteColor,
+          turnTimeLimit: turnTimeLimit,
         ),
       ],
     );
   }
 
   Widget _buildBoard() {
-    // 👇 LayoutBuilder 위젯으로 감싸서 정확한 보드 크기를 얻습니다.
     return LayoutBuilder(
       builder: (context, constraints) {
-        // constraints.maxWidth는 화면 전체가 아닌, 이 위젯이 가질 수 있는 실제 너비입니다.
         final boardSizeDimension = constraints.maxWidth;
 
         return NeumorphicContainer(
@@ -626,11 +751,11 @@ class _GameScreenState extends State<GameScreen>
           isCircle: false,
           child: GestureDetector(
             onTapUp: (details) {
-              if (widget.gameMode == GameMode.pvc &&
-                  _currentPlayer == Player.white)
+              if (_isGameOver ||
+                  (widget.gameMode == GameMode.pvc &&
+                      _currentPlayer == Player.white))
                 return;
 
-              // 👇 기존 context.size 대신 정확한 boardSizeDimension을 사용합니다.
               final squareSize = boardSizeDimension / (boardSize - 1);
               final row = (details.localPosition.dy / squareSize).round();
               final col = (details.localPosition.dx / squareSize).round();
@@ -677,10 +802,27 @@ class BoardPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double squareSize = size.width / (boardSize - 1);
-    final Paint linePaint = Paint()
-      ..color = kDarkShadow.withOpacity(0.5)
-      ..strokeWidth = 1.0;
 
+    // 오목판 배경 그리기 (더 부드러운 나무 질감)
+    final boardPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFD2B48C), Color(0xFFA0522D)],
+        stops: [0.0, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        const Radius.circular(15),
+      ),
+      boardPaint,
+    );
+
+    // 보드 라인 그리기
+    final Paint linePaint = Paint()
+      ..color = kBoardLineColor.withOpacity(0.8)
+      ..strokeWidth = 1.5; // 약간 두껍게
     for (int i = 0; i < boardSize; i++) {
       canvas.drawLine(
         Offset(0, i * squareSize),
@@ -694,49 +836,118 @@ class BoardPainter extends CustomPainter {
       );
     }
 
-    final double stoneRadius = squareSize / 2.2;
+    // 화점 그리기
+    final Paint dotPaint = Paint()..color = kBoardLineColor.withOpacity(0.9);
+    final double dotRadius = 5.0; // 화점 크기 증가
+    final List<Point<int>> dotPositions = [
+      const Point(3, 3),
+      const Point(3, 11),
+      const Point(11, 3),
+      const Point(11, 11),
+      const Point(7, 7),
+    ];
+    for (var pos in dotPositions) {
+      canvas.drawCircle(
+        Offset(pos.y * squareSize, pos.x * squareSize),
+        dotRadius,
+        dotPaint,
+      );
+    }
+
+    // 돌 그리기
+    final double stoneRadius = squareSize / 2.3; // 돌 크기 미세 조정
     for (int i = 0; i < boardSize; i++) {
       for (int j = 0; j < boardSize; j++) {
         if (board[i][j] != Player.none) {
           final center = Offset(j * squareSize, i * squareSize);
           bool isLastMove = lastMove?.x == i && lastMove?.y == j;
+          bool isWinningStone = winningLine.any((p) => p.x == i && p.y == j);
+
+          // 돌 놓기 애니메이션 (통통 튀는 효과)
           double scale = isLastMove
-              ? (0.8 + 0.2 * Curves.easeOut.transform(animationValue))
+              ? (0.7 + 0.3 * Curves.elasticOut.transform(animationValue))
               : 1.0;
           double currentRadius = stoneRadius * scale;
 
           final rect = Rect.fromCircle(center: center, radius: currentRadius);
           final stonePaint = Paint();
 
+          // 흑돌 그라디언트
           if (board[i][j] == Player.black) {
             stonePaint.shader = const RadialGradient(
-              colors: [Color(0xFF414141), Color(0xFF101010)],
-            ).createShader(rect);
-          } else {
-            stonePaint.shader = const RadialGradient(
-              colors: [kLightShadow, kBackgroundColor],
-              stops: [0.7, 1.0],
+              colors: [Color(0xFF424242), Color(0xFF212121), Color(0xFF000000)],
+              stops: [0.0, 0.7, 1.0],
             ).createShader(rect);
           }
+          // 백돌 그라디언트
+          else {
+            stonePaint.shader = const RadialGradient(
+              colors: [Color(0xFFE0E0E0), Color(0xFFC0C0C0), Color(0xFFFFFFFF)],
+              stops: [0.0, 0.7, 1.0],
+            ).createShader(rect);
+          }
+
+          // 돌 그림자 효과
+          final shadowPaint = Paint()
+            ..color = Colors.black.withOpacity(0.3)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
+          canvas.drawCircle(
+            center.translate(2 * scale, 2 * scale),
+            currentRadius,
+            shadowPaint,
+          );
+
           canvas.drawCircle(center, currentRadius, stonePaint);
+
+          // 마지막으로 놓은 돌 표시 (테두리)
+          if (isLastMove) {
+            final lastMovePaint = Paint()
+              ..color = kHighlightColor
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3.0;
+            canvas.drawCircle(center, currentRadius + 2, lastMovePaint);
+          }
+
+          // 승리 돌 하이라이트 효과 (반짝임)
+          if (isWinningStone) {
+            final highlightPaint = Paint()
+              ..color = Colors.yellow.withOpacity(0.6)
+              ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 5.0);
+            canvas.drawCircle(center, currentRadius + 3, highlightPaint);
+          }
         }
       }
     }
 
-    if (winningLine.isNotEmpty) {
+    // 승리 라인 그리기 (애니메이션)
+    if (winningLine.isNotEmpty && animationValue > 0) {
       final linePaint = Paint()
-        ..color = kAccentColor.withOpacity(0.8)
-        ..strokeWidth = 6.0
-        ..strokeCap = StrokeCap.round;
-      Point start = winningLine.reduce(
-        (a, b) => a.x < b.x || (a.x == b.x && a.y < b.y) ? a : b,
-      );
-      Point end = winningLine.reduce(
-        (a, b) => a.x > b.x || (a.x == b.x && a.y > b.y) ? a : b,
-      );
+        ..color = kHighlightColor.withOpacity(0.9)
+        ..strokeWidth = 8.0
+        ..strokeCap = StrokeCap.round
+        ..shader = LinearGradient(
+          // 반짝이는 효과를 위한 그라디언트
+          colors: [
+            Colors.white.withOpacity(0.8),
+            kHighlightColor,
+            Colors.white.withOpacity(0.8),
+          ],
+          stops: [0.0, 0.5, 1.0],
+          tileMode: TileMode.mirror,
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+      Point start = winningLine.first;
+      Point end = winningLine.last;
+
+      double dx = (end.y - start.y) * squareSize;
+      double dy = (end.x - start.x) * squareSize;
+
       canvas.drawLine(
         Offset(start.y * squareSize, start.x * squareSize),
-        Offset(end.y * squareSize, end.x * squareSize),
+        Offset(
+          start.y * squareSize + dx * animationValue,
+          start.x * squareSize + dy * animationValue,
+        ),
         linePaint,
       );
     }
@@ -747,32 +958,102 @@ class BoardPainter extends CustomPainter {
 }
 
 // --- 커스텀 위젯들 ---
-class _NeumorphicButton extends StatelessWidget {
+class _NeumorphicButton extends StatefulWidget {
   final String? text;
   final IconData? icon;
   final VoidCallback onPressed;
-  const _NeumorphicButton({this.text, this.icon, required this.onPressed});
+  final double? width;
+  final double? height;
+  final bool isCircle;
+
+  const _NeumorphicButton({
+    super.key,
+    this.text,
+    this.icon,
+    required this.onPressed,
+    this.width = 240,
+    this.height = 70,
+    this.isCircle = false,
+  });
+
+  @override
+  State<_NeumorphicButton> createState() => _NeumorphicButtonState();
+}
+
+class _NeumorphicButtonState extends State<_NeumorphicButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+      lowerBound: 0.0,
+      upperBound: 0.1,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    _animationController.forward();
+  }
+
+  // 👇 여기가 수정된 부분입니다!
+  void _onTapUp(TapUpDetails details) {
+    // 'TapUpUpDetails' -> 'TapUpDetails'
+    _animationController.reverse();
+    widget.onPressed();
+  }
+
+  void _onTapCancel() {
+    _animationController.reverse();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onPressed,
-      child: NeumorphicContainer(
-        width: text != null ? 240 : 70,
-        height: 70,
-        isCircle: text == null,
-        child: Center(
-          child: text != null
-              ? Text(
-                  text!,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: kTextColor,
-                  ),
-                )
-              : Icon(icon, size: 30, color: kTextColor.withOpacity(0.8)),
-        ),
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: NeumorphicContainer(
+              width: widget.width,
+              height: widget.height,
+              isCircle: widget.isCircle,
+              child: Center(
+                child: widget.text != null
+                    ? Text(
+                        widget.text!,
+                        style: GoogleFonts.jua(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: kTextColor,
+                        ),
+                      )
+                    : Icon(
+                        widget.icon,
+                        size: 30,
+                        color: kTextColor.withOpacity(0.8),
+                      ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -802,15 +1083,15 @@ class NeumorphicContainer extends StatelessWidget {
         shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
         boxShadow: const [
           BoxShadow(
-            color: kDarkShadow,
-            offset: Offset(5, 5),
-            blurRadius: 15,
+            color: kShadowColorDark,
+            offset: Offset(4, 4),
+            blurRadius: 10,
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: kLightShadow,
-            offset: Offset(-5, -5),
-            blurRadius: 15,
+            color: kShadowColorLight,
+            offset: Offset(-4, -4),
+            blurRadius: 10,
             spreadRadius: 1,
           ),
         ],
@@ -824,54 +1105,119 @@ class _PlayerIndicator extends StatelessWidget {
   final String name;
   final bool isTurn;
   final int time;
+  final Color playerColor;
+  final int turnTimeLimit;
+
   const _PlayerIndicator({
     required this.name,
     required this.isTurn,
     required this.time,
+    required this.playerColor,
+    required this.turnTimeLimit,
   });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
       width: 150,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         color: kBackgroundColor,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: isTurn
-            ? const [
-                BoxShadow(color: kAccentColor, blurRadius: 10, spreadRadius: 2),
-                BoxShadow(
-                  color: kDarkShadow,
-                  offset: Offset(3, 3),
-                  blurRadius: 10,
-                ),
-                BoxShadow(
-                  color: kLightShadow,
-                  offset: Offset(-3, -3),
-                  blurRadius: 10,
-                ),
-              ]
-            : null,
+        boxShadow: [
+          if (isTurn)
+            BoxShadow(
+              color: kHighlightColor.withOpacity(0.6),
+              blurRadius: 10,
+              spreadRadius: 3,
+            ),
+          BoxShadow(
+            color: kShadowColorDark.withOpacity(0.3),
+            offset: const Offset(3, 3),
+            blurRadius: 10,
+          ),
+          BoxShadow(
+            color: kShadowColorLight.withOpacity(0.7),
+            offset: const Offset(-3, -3),
+            blurRadius: 10,
+          ),
+        ],
+        border: isTurn ? Border.all(color: kHighlightColor, width: 3) : null,
       ),
       child: Column(
         children: [
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isTurn ? kAccentColor : kTextColor,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 플레이어 아이콘 (돌 모양)
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: playerColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      offset: const Offset(1, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                name,
+                style: GoogleFonts.jua(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: kTextColor,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          Text(
-            "$time초",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: time <= 5 ? Colors.red : kTextColor.withOpacity(0.8),
+          // 타이머 게이지와 남은 시간
+          SizedBox(
+            width: 80,
+            height: 80,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (isTurn) // 현재 턴인 경우에만 게이지 표시
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: CircularProgressIndicator(
+                      value: time / turnTimeLimit,
+                      strokeWidth: 8,
+                      backgroundColor: kTextColor.withOpacity(0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        time <= 5 ? kDangerColor : kHighlightColor,
+                      ),
+                    ),
+                  )
+                else
+                  // 현재 턴이 아닐 때는 원형 플레이트
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: kTextColor.withOpacity(0.1),
+                    ),
+                  ),
+                Text(
+                  "$time",
+                  style: GoogleFonts.jua(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w700,
+                    color: time <= 5 && isTurn ? kDangerColor : kTextColor,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -880,7 +1226,7 @@ class _PlayerIndicator extends StatelessWidget {
   }
 }
 
-// --- AI 로직 클래스 ---
+// --- AI 로직 클래스 (변동 없음) ---
 class AILogic {
   final int boardSize;
   final Difficulty difficulty;
@@ -935,11 +1281,12 @@ class AILogic {
   Point<int> _findBestMoveEasy(List<List<Player>> board) {
     List<Point<int>> emptyCells = [];
     int maxScore = -1;
-    Point<int> bestMove = const Point(7, 7);
+    Point<int> bestMove = const Point(7, 7); // 기본 중앙
     for (int r = 0; r < boardSize; r++) {
       for (int c = 0; c < boardSize; c++) {
         if (board[r][c] == Player.none) {
           int score = 0;
+          // 주변에 돌이 있는 칸에 가중치
           for (int dr = -1; dr <= 1; dr++) {
             for (int dc = -1; dc <= 1; dc++) {
               if (dr == 0 && dc == 0) continue;
@@ -961,6 +1308,7 @@ class AILogic {
         }
       }
     }
+    // 주변에 돌이 없으면 랜덤으로 선택
     if (maxScore == 0 && emptyCells.isNotEmpty) {
       return emptyCells[Random().nextInt(emptyCells.length)];
     }
