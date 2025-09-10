@@ -1,5 +1,3 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
@@ -12,7 +10,7 @@ import 'utils/theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
-  await setupLocator(); // GetIt 서비스 로케이터 설정
+  await setupLocator();
   runApp(const OmokGameApp());
 }
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// 테마 색상 정의
 const Color kBackgroundColor = Color(0xFFF0F4F8);
 const Color kBoardColor = Color(0xFFD2B48C);
 const Color kBoardLineColor = Color(0xFF6D4C41);
@@ -13,7 +12,6 @@ const Color kTextColor = Color(0xFF424242);
 const Color kShadowColorDark = Color(0xFFA3B1C6);
 const Color kShadowColorLight = Color(0xFFFFFFFF);
 
-// 앱 전체 테마
 final ThemeData appTheme = ThemeData(
   scaffoldBackgroundColor: kBackgroundColor,
   textTheme: GoogleFonts.juaTextTheme(

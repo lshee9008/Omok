@@ -1,5 +1,3 @@
-// lib/providers/game_provider.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
@@ -26,8 +24,6 @@ class GameProvider extends ChangeNotifier {
   String _statusMessage = "";
 
   late AILogic _ai;
-  Timer? _timer;
-  int _timeRemaining = turnTimeLimit;
 
   Point<int>? _lastMove;
   List<Point<int>> _winningLine = [];
@@ -46,7 +42,6 @@ class GameProvider extends ChangeNotifier {
   Player get currentPlayer => _currentPlayer;
   bool get isGameOver => _isGameOver;
   String get statusMessage => _statusMessage;
-  int get timeRemaining => _timeRemaining;
   Point<int>? get lastMove => _lastMove;
   List<Point<int>> get winningLine => _winningLine;
   BoardTheme get currentBoardTheme => _currentBoardTheme;
@@ -92,6 +87,17 @@ class GameProvider extends ChangeNotifier {
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           _interstitialAd = ad;
+          _interstitialAd!.fullScreenContentCallback =
+              FullScreenContentCallback(
+                onAdDismissedFullScreenContent: (ad) {
+                  ad.dispose();
+                  _loadInterstitialAd();
+                },
+                onAdFailedToShowFullScreenContent: (ad, error) {
+                  ad.dispose();
+                  _loadInterstitialAd();
+                },
+              );
         },
         onAdFailedToLoad: (err) {
           _interstitialAd = null;
@@ -119,29 +125,7 @@ class GameProvider extends ChangeNotifier {
     _statusMessage = '${getPlayerName(_currentPlayer)}의 차례';
     _lastMove = null;
     _winningLine = [];
-    _startTimer();
     notifyListeners();
-  }
-
-  void _startTimer() {
-    _timer?.cancel();
-    _timeRemaining = turnTimeLimit;
-    notifyListeners(); // 타이머가 초기화될 때 한번만 UI 업데이트
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isGameOver) {
-        timer.cancel();
-        return;
-      }
-      if (_timeRemaining > 0) {
-        _timeRemaining--;
-        // ✅ 수정: 여기서 notifyListeners()를 제거하여 불필요한 전체 리빌드를 막습니다.
-        // Selector가 timeRemaining 값만 감지하여 필요한 부분만 업데이트합니다.
-        notifyListeners(); // 이 줄을 제거하는 것이 좋습니다.
-      } else {
-        timer.cancel();
-        handleTimeout();
-      }
-    });
   }
 
   void handleTimeout() {
@@ -154,7 +138,7 @@ class GameProvider extends ChangeNotifier {
         : Player.black;
     _statusMessage =
         '${getPlayerName(timedOutPlayer)} 시간 초과!\n${getPlayerName(_currentPlayer)}의 차례';
-    notifyListeners(); // 턴 변경 및 메시지 업데이트를 UI에 알림
+    notifyListeners();
 
     if (_gameMode == GameMode.pvc &&
         !_isGameOver &&
@@ -165,7 +149,6 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  // ✅ _switchPlayer 함수에서 타이머 관련 코드를 제거합니다.
   void _switchPlayer() {
     _currentPlayer = (_currentPlayer == Player.black)
         ? Player.white
@@ -174,7 +157,6 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ placeStone 함수에서 타이머 관련 코드를 제거합니다.
   void placeStone(int row, int col) {
     if (_isGameOver || _board[row][col] != Player.none) return;
 
@@ -201,7 +183,6 @@ class GameProvider extends ChangeNotifier {
         _currentPlayer == Player.white) {
       _statusMessage = "컴퓨터가 생각 중...";
       notifyListeners();
-      _timer?.cancel();
       Timer(const Duration(milliseconds: 700), _computerMove);
     }
   }
@@ -216,11 +197,9 @@ class GameProvider extends ChangeNotifier {
     bool playerWon =
         (_gameMode == GameMode.pvc && winner == Player.black) ||
         (_gameMode == GameMode.pvp);
-
     if (playerWon) {
       _playerData.addAcorns(10);
     }
-
     if (_gameMode == GameMode.pvc) {
       if (winner == Player.black) {
         _gameStats.recordWin(GameMode.pvc, difficulty: _difficulty);
@@ -339,12 +318,6 @@ class GameProvider extends ChangeNotifier {
                     _interstitialAd!.show().then((_) {
                       if (context.mounted) Navigator.of(context).pop();
                     });
-                    _interstitialAd!.fullScreenContentCallback =
-                        FullScreenContentCallback(
-                          onAdDismissedFullScreenContent: (ad) => ad.dispose(),
-                          onAdFailedToShowFullScreenContent: (ad, error) =>
-                              ad.dispose(),
-                        );
                   } else {
                     Navigator.of(context).pop();
                   }
@@ -373,7 +346,6 @@ class GameProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _timer?.cancel();
     confettiController.dispose();
     _interstitialAd?.dispose();
     super.dispose();

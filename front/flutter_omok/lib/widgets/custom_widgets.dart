@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_omok/providers/game_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import '../providers/game_provider.dart';
 import '../utils/theme.dart';
 
 class NeumorphicButton extends StatefulWidget {
@@ -181,7 +179,6 @@ class _PlayerIndicatorState extends State<PlayerIndicator> {
   @override
   void didUpdateWidget(PlayerIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 턴 상태가 변경될 때 타이머를 제어합니다.
     if (widget.isTurn != oldWidget.isTurn) {
       _timer?.cancel();
       if (widget.isTurn) {

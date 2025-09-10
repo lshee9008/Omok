@@ -1,13 +1,11 @@
 import 'dart:math';
 
-// 게임 관련 열거형
 enum GameMode { pvp, pvc }
 
 enum Player { none, black, white }
 
 enum Difficulty { easy, normal, hard }
 
-// AI 로직 클래스
 class AILogic {
   final int boardSize;
   final Difficulty difficulty;

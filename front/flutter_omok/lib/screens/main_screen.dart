@@ -10,7 +10,7 @@ import '../providers/game_provider.dart';
 import '../utils/ad_helper.dart';
 import '../utils/theme.dart';
 import '../widgets/custom_widgets.dart';
-import 'game_screen.dart';
+import 'game_screen.dart' hide GameProvider;
 import 'inventory_screen.dart';
 import 'stats_screen.dart';
 import 'store_screen.dart';
