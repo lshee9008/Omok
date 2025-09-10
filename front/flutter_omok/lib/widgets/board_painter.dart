@@ -8,7 +8,8 @@ class BoardPainter extends CustomPainter {
   final List<List<Player>> board;
   final int boardSize;
   final Point<int>? lastMove;
-  final double animationValue;
+  final double placementAnimationValue;
+  final double continuousAnimationValue;
   final List<Point<int>> winningLine;
   final BoardTheme boardTheme;
   final StoneTheme stoneTheme;
@@ -17,11 +18,52 @@ class BoardPainter extends CustomPainter {
     required this.board,
     required this.boardSize,
     this.lastMove,
-    required this.animationValue,
+    required this.placementAnimationValue,
+    required this.continuousAnimationValue,
     required this.winningLine,
     required this.boardTheme,
     required this.stoneTheme,
   });
+
+  void _drawGalaxyEffect(Canvas canvas, Size size) {
+    final random = Random(1);
+    final starPaint = Paint()..color = Colors.white;
+    for (int i = 0; i < 100; i++) {
+      final opacity =
+          (sin(2 * pi * continuousAnimationValue + random.nextDouble() * pi) +
+              1) /
+          2;
+      starPaint.color = Colors.white.withOpacity(opacity * 0.8);
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final radius = random.nextDouble() * 1.5;
+      canvas.drawCircle(Offset(x, y), radius, starPaint);
+    }
+  }
+
+  void _drawDiamondSparkleEffect(Canvas canvas, Offset center, double radius) {
+    final sparklePaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final angle = continuousAnimationValue * 2 * pi;
+    final progress = (sin(continuousAnimationValue * 2 * pi) + 1) / 2;
+    if (progress > 0.7) {
+      for (int i = 0; i < 4; i++) {
+        final currentAngle = angle + i * (pi / 2);
+        final start =
+            center +
+            Offset(cos(currentAngle), sin(currentAngle)) * radius * 0.8;
+        final end =
+            center +
+            Offset(cos(currentAngle), sin(currentAngle)) *
+                radius *
+                1.2 *
+                progress;
+        canvas.drawLine(start, end, sparklePaint);
+      }
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -34,6 +76,10 @@ class BoardPainter extends CustomPainter {
       ),
       boardPaint,
     );
+
+    if (boardTheme.effectId == 'galaxy_stars') {
+      _drawGalaxyEffect(canvas, size);
+    }
 
     final Paint linePaint = Paint()
       ..color = boardTheme.lineColor.withOpacity(0.9)
@@ -76,7 +122,8 @@ class BoardPainter extends CustomPainter {
           bool isLastMove = lastMove?.x == i && lastMove?.y == j;
           bool isWinningStone = winningLine.any((p) => p.x == i && p.y == j);
           double scale = isLastMove
-              ? (0.7 + 0.3 * Curves.elasticOut.transform(animationValue))
+              ? (0.7 +
+                    0.3 * Curves.elasticOut.transform(placementAnimationValue))
               : 1.0;
           double currentRadius = stoneRadius * scale;
           final rect = Rect.fromCircle(center: center, radius: currentRadius);
@@ -102,6 +149,10 @@ class BoardPainter extends CustomPainter {
           );
           canvas.drawCircle(center, currentRadius, stonePaint);
 
+          if (stoneTheme.effectId == 'diamond_sparkle') {
+            _drawDiamondSparkleEffect(canvas, center, currentRadius);
+          }
+
           if (isLastMove) {
             final lastMovePaint = Paint()
               ..color = kHighlightColor
@@ -119,7 +170,7 @@ class BoardPainter extends CustomPainter {
       }
     }
 
-    if (winningLine.isNotEmpty && animationValue > 0) {
+    if (winningLine.isNotEmpty && placementAnimationValue > 0) {
       final linePaint = Paint()
         ..color = kHighlightColor.withOpacity(0.9)
         ..strokeWidth = 8.0
@@ -144,8 +195,8 @@ class BoardPainter extends CustomPainter {
       canvas.drawLine(
         Offset(start.y * squareSize, start.x * squareSize),
         Offset(
-          start.y * squareSize + dx * animationValue,
-          start.x * squareSize + dy * animationValue,
+          start.y * squareSize + dx * placementAnimationValue,
+          start.x * squareSize + dy * placementAnimationValue,
         ),
         linePaint,
       );

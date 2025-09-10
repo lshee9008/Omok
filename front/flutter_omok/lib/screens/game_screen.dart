@@ -1,5 +1,3 @@
-// lib/screens/game_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,11 +18,12 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _stonePlacementController;
   late AnimationController _statusMessageController;
+  late AnimationController _continuousEffectController; // 지속 효과 컨트롤러 추가
   late Animation<double> _statusMessageFadeAnimation;
   late Animation<Offset> _statusMessageSlideAnimation;
 
   late GameProvider _gameProvider;
-  bool _isDialogShowing = false; // 다이얼로그 중복 호출 방지 플래그
+  bool _isDialogShowing = false;
 
   @override
   void initState() {
@@ -40,6 +39,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+    _continuousEffectController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
     _statusMessageFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _statusMessageController, curve: Curves.easeIn),
     );
@@ -60,18 +64,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     final gameProvider = context.read<GameProvider>();
 
-    // 마지막 수 애니메이션
     if (gameProvider.lastMove != null) {
       _stonePlacementController.forward(from: 0.0);
     }
 
-    // ✅ 수정: 게임 종료 시 다이얼로그 표시 로직 개선
     if (gameProvider.isGameOver && !_isDialogShowing) {
-      _isDialogShowing = true; // 다이얼로그가 곧 표시될 것임을 알림
+      _isDialogShowing = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           gameProvider.showGameOverDialog(context);
-          // 다이얼로그가 닫히면 플래그를 다시 false로 설정 (재시작 대비)
           Future.delayed(
             const Duration(seconds: 1),
             () => _isDialogShowing = false,
@@ -88,6 +89,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _gameProvider.removeListener(_onGameProviderChanged);
     _stonePlacementController.dispose();
     _statusMessageController.dispose();
+    _continuousEffectController.dispose();
     super.dispose();
   }
 
@@ -154,7 +156,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               !gameProvider.isGameOver,
           playerColor:
               gameProvider.currentStoneTheme.blackStoneGradient.colors.last,
-          // ✅ 수정: 'initialTime' 매개변수 제거
           onTimeout: () => gameProvider.handleTimeout(),
         ),
         PlayerIndicator(
@@ -164,7 +165,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               !gameProvider.isGameOver,
           playerColor:
               gameProvider.currentStoneTheme.whiteStoneGradient.colors.first,
-          // ✅ 수정: 'initialTime' 매개변수 제거
           onTimeout: () => gameProvider.handleTimeout(),
         ),
       ],
@@ -194,13 +194,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               context.read<GameProvider>().handleTap(row, col);
             },
             child: AnimatedBuilder(
-              animation: _stonePlacementController,
+              animation: Listenable.merge([
+                _stonePlacementController,
+                _continuousEffectController,
+              ]),
               builder: (context, child) => CustomPaint(
                 painter: BoardPainter(
                   board: gameProvider.board,
                   boardSize: GameProvider.boardSize,
                   lastMove: gameProvider.lastMove,
-                  animationValue: _stonePlacementController.value,
+                  placementAnimationValue: _stonePlacementController.value,
+                  continuousAnimationValue: _continuousEffectController.value,
                   winningLine: gameProvider.winningLine,
                   boardTheme: gameProvider.currentBoardTheme,
                   stoneTheme: gameProvider.currentStoneTheme,

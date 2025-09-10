@@ -1,13 +1,15 @@
+// lib/screens/store_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:flutter_omok/main.dart';
-import 'package:flutter_omok/models/item_models.dart';
-import 'package:flutter_omok/services/locator.dart';
-import 'package:flutter_omok/services/player_data.dart';
-import 'package:flutter_omok/utils/ad_helper.dart';
-import 'package:flutter_omok/utils/theme.dart';
-import 'package:flutter_omok/widgets/custom_widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+import '../models/item_models.dart';
+import '../services/locator.dart';
+import '../services/player_data.dart';
+import '../utils/ad_helper.dart';
+import '../utils/theme.dart';
+import '../widgets/custom_widgets.dart';
 
 class StoreScreen extends StatefulWidget {
   const StoreScreen({super.key});
@@ -90,6 +92,24 @@ class _StoreScreenState extends State<StoreScreen> {
               style: GoogleFonts.jua(fontSize: 28),
             ),
           ),
+
+          // ✨ 테스트용 치트 버튼 (출시 전 반드시 삭제!) ✨
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: kDangerColor),
+              onPressed: () async {
+                await _playerData.addAcorns(1000); // 버튼 누를 때마다 1000 도토리 추가
+                _loadPlayerData(); // 화면 새로고침
+              },
+              child: const Text(
+                '1000 도토리 추가 (테스트용)',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+
+          // ✨ ================================== ✨
           if (_isRewardedAdLoaded)
             Padding(
               padding: const EdgeInsets.symmetric(
