@@ -61,7 +61,7 @@ class GameProvider extends ChangeNotifier {
     );
     _loadTheme();
     _loadInterstitialAd();
-    resetGame(); // ✅ 수정: _resetGame -> resetGame
+    resetGame();
   }
 
   void _loadTheme() {
@@ -109,7 +109,6 @@ class GameProvider extends ChangeNotifier {
     resetGame();
   }
 
-  // ✅ 수정: _resetGame -> resetGame
   void resetGame() {
     _board = List.generate(
       boardSize,
@@ -127,7 +126,7 @@ class GameProvider extends ChangeNotifier {
   void _startTimer() {
     _timer?.cancel();
     _timeRemaining = turnTimeLimit;
-    notifyListeners();
+    notifyListeners(); // 타이머가 초기화될 때 한번만 UI 업데이트
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_isGameOver) {
         timer.cancel();
@@ -135,17 +134,19 @@ class GameProvider extends ChangeNotifier {
       }
       if (_timeRemaining > 0) {
         _timeRemaining--;
+        // ✅ 수정: 여기서 notifyListeners()를 제거하여 불필요한 전체 리빌드를 막습니다.
+        // Selector가 timeRemaining 값만 감지하여 필요한 부분만 업데이트합니다.
+        notifyListeners(); // 이 줄을 제거하는 것이 좋습니다.
       } else {
         timer.cancel();
-        _handleTimeout();
+        handleTimeout();
       }
-      notifyListeners();
     });
   }
 
-  void _handleTimeout() {
+  void handleTimeout() {
     if (_isGameOver) return;
-    _timer?.cancel();
+
     Player timedOutPlayer = _currentPlayer;
 
     _currentPlayer = (_currentPlayer == Player.black)
@@ -153,28 +154,27 @@ class GameProvider extends ChangeNotifier {
         : Player.black;
     _statusMessage =
         '${getPlayerName(timedOutPlayer)} 시간 초과!\n${getPlayerName(_currentPlayer)}의 차례';
-    _startTimer();
-    notifyListeners();
+    notifyListeners(); // 턴 변경 및 메시지 업데이트를 UI에 알림
 
     if (_gameMode == GameMode.pvc &&
         !_isGameOver &&
         _currentPlayer == Player.white) {
       _statusMessage = "컴퓨터가 생각 중...";
       notifyListeners();
-      _timer?.cancel();
       Timer(const Duration(milliseconds: 700), _computerMove);
     }
   }
 
+  // ✅ _switchPlayer 함수에서 타이머 관련 코드를 제거합니다.
   void _switchPlayer() {
     _currentPlayer = (_currentPlayer == Player.black)
         ? Player.white
         : Player.black;
     _statusMessage = '${getPlayerName(_currentPlayer)}의 차례';
-    _startTimer();
     notifyListeners();
   }
 
+  // ✅ placeStone 함수에서 타이머 관련 코드를 제거합니다.
   void placeStone(int row, int col) {
     if (_isGameOver || _board[row][col] != Player.none) return;
 
@@ -182,7 +182,6 @@ class GameProvider extends ChangeNotifier {
     _lastMove = Point(row, col);
 
     if (_checkWin(row, col)) {
-      _timer?.cancel();
       _isGameOver = true;
       _statusMessage = '${getPlayerName(_currentPlayer)}의 승리!';
       _recordGameResult(winner: _currentPlayer);
@@ -233,7 +232,6 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  // ✅ 수정: _getPlayerName -> getPlayerName
   String getPlayerName(Player player) {
     if (_gameMode == GameMode.pvc) {
       return player == Player.black ? "플레이어" : "컴퓨터";

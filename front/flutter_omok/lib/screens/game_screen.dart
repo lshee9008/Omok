@@ -1,3 +1,5 @@
+// lib/screens/game_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,14 +23,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late Animation<double> _statusMessageFadeAnimation;
   late Animation<Offset> _statusMessageSlideAnimation;
 
-  // ✅ 1. GameProvider 인스턴스를 저장할 변수를 선언합니다.
   late GameProvider _gameProvider;
+  bool _isDialogShowing = false; // 다이얼로그 중복 호출 방지 플래그
 
   @override
   void initState() {
     super.initState();
 
-    // ✅ 2. initState에서 context가 안전할 때 Provider 인스턴스를 변수에 저장합니다.
     _gameProvider = context.read<GameProvider>();
 
     _stonePlacementController = AnimationController(
@@ -50,35 +51,41 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
         );
 
-    // ✅ 3. 저장해둔 _gameProvider 변수를 사용하여 리스너를 추가합니다.
     _gameProvider.addListener(_onGameProviderChanged);
     _statusMessageController.forward();
   }
 
   void _onGameProviderChanged() {
-    if (!mounted) return; // 위젯이 트리에 없을 경우 아무것도 하지 않음
+    if (!mounted) return;
 
-    final gameProvider = context
-        .read<GameProvider>(); // 이 메서드는 dispose가 아니므로 안전
+    final gameProvider = context.read<GameProvider>();
+
+    // 마지막 수 애니메이션
     if (gameProvider.lastMove != null) {
       _stonePlacementController.forward(from: 0.0);
     }
-    if (gameProvider.isGameOver) {
-      // build가 완료된 후 다이얼로그를 안전하게 표시
+
+    // ✅ 수정: 게임 종료 시 다이얼로그 표시 로직 개선
+    if (gameProvider.isGameOver && !_isDialogShowing) {
+      _isDialogShowing = true; // 다이얼로그가 곧 표시될 것임을 알림
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && ModalRoute.of(context)?.isCurrent != true) {
+        if (mounted) {
           gameProvider.showGameOverDialog(context);
+          // 다이얼로그가 닫히면 플래그를 다시 false로 설정 (재시작 대비)
+          Future.delayed(
+            const Duration(seconds: 1),
+            () => _isDialogShowing = false,
+          );
         }
       });
     }
+
     _statusMessageController.forward(from: 0.0);
   }
 
   @override
   void dispose() {
-    // ✅ 4. dispose에서는 context 대신 저장해둔 _gameProvider 변수를 사용합니다.
     _gameProvider.removeListener(_onGameProviderChanged);
-
     _stonePlacementController.dispose();
     _statusMessageController.dispose();
     super.dispose();
@@ -86,7 +93,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // UI 업데이트를 위해 context.watch 사용
     final gameProvider = context.watch<GameProvider>();
 
     return Scaffold(
@@ -146,24 +152,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           isTurn:
               gameProvider.currentPlayer == Player.black &&
               !gameProvider.isGameOver,
-          time: gameProvider.currentPlayer == Player.black
-              ? gameProvider.timeRemaining
-              : GameProvider.turnTimeLimit,
           playerColor:
               gameProvider.currentStoneTheme.blackStoneGradient.colors.last,
-          turnTimeLimit: GameProvider.turnTimeLimit,
+          // ✅ 수정: 'initialTime' 매개변수 제거
+          onTimeout: () => gameProvider.handleTimeout(),
         ),
         PlayerIndicator(
           name: gameProvider.getPlayerName(Player.white),
           isTurn:
               gameProvider.currentPlayer == Player.white &&
               !gameProvider.isGameOver,
-          time: gameProvider.currentPlayer == Player.white
-              ? gameProvider.timeRemaining
-              : GameProvider.turnTimeLimit,
           playerColor:
               gameProvider.currentStoneTheme.whiteStoneGradient.colors.first,
-          turnTimeLimit: GameProvider.turnTimeLimit,
+          // ✅ 수정: 'initialTime' 매개변수 제거
+          onTimeout: () => gameProvider.handleTimeout(),
         ),
       ],
     );

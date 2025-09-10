@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_omok/providers/game_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
 
 class NeumorphicButton extends StatefulWidget {
@@ -143,20 +147,79 @@ class NeumorphicContainer extends StatelessWidget {
   }
 }
 
-class PlayerIndicator extends StatelessWidget {
+class PlayerIndicator extends StatefulWidget {
   final String name;
   final bool isTurn;
-  final int time;
   final Color playerColor;
-  final int turnTimeLimit;
+  final VoidCallback onTimeout;
+
   const PlayerIndicator({
     super.key,
     required this.name,
     required this.isTurn,
-    required this.time,
     required this.playerColor,
-    required this.turnTimeLimit,
+    required this.onTimeout,
   });
+
+  @override
+  State<PlayerIndicator> createState() => _PlayerIndicatorState();
+}
+
+class _PlayerIndicatorState extends State<PlayerIndicator> {
+  Timer? _timer;
+  late int _timeRemaining;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeRemaining = GameProvider.turnTimeLimit;
+    if (widget.isTurn) {
+      _startTimer();
+    }
+  }
+
+  @override
+  void didUpdateWidget(PlayerIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 턴 상태가 변경될 때 타이머를 제어합니다.
+    if (widget.isTurn != oldWidget.isTurn) {
+      _timer?.cancel();
+      if (widget.isTurn) {
+        _startTimer();
+      } else {
+        setState(() {
+          _timeRemaining = GameProvider.turnTimeLimit;
+        });
+      }
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() {
+      _timeRemaining = GameProvider.turnTimeLimit;
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_timeRemaining > 0) {
+        setState(() {
+          _timeRemaining--;
+        });
+      } else {
+        timer.cancel();
+        widget.onTimeout();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +232,7 @@ class PlayerIndicator extends StatelessWidget {
         color: kBackgroundColor,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          if (isTurn)
+          if (widget.isTurn)
             BoxShadow(
               color: kHighlightColor.withOpacity(0.6),
               blurRadius: 10,
@@ -186,7 +249,9 @@ class PlayerIndicator extends StatelessWidget {
             blurRadius: 10,
           ),
         ],
-        border: isTurn ? Border.all(color: kHighlightColor, width: 3) : null,
+        border: widget.isTurn
+            ? Border.all(color: kHighlightColor, width: 3)
+            : null,
       ),
       child: Column(
         children: [
@@ -198,7 +263,7 @@ class PlayerIndicator extends StatelessWidget {
                 height: 20,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: playerColor,
+                  color: widget.playerColor,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.3),
@@ -210,7 +275,7 @@ class PlayerIndicator extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                name,
+                widget.name,
                 style: GoogleFonts.jua(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -226,16 +291,16 @@ class PlayerIndicator extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                if (isTurn)
+                if (widget.isTurn)
                   SizedBox(
                     width: 70,
                     height: 70,
                     child: CircularProgressIndicator(
-                      value: time / turnTimeLimit,
+                      value: _timeRemaining / GameProvider.turnTimeLimit,
                       strokeWidth: 8,
                       backgroundColor: kTextColor.withOpacity(0.1),
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        time <= 5 ? kDangerColor : kHighlightColor,
+                        _timeRemaining <= 5 ? kDangerColor : kHighlightColor,
                       ),
                     ),
                   )
@@ -249,11 +314,13 @@ class PlayerIndicator extends StatelessWidget {
                     ),
                   ),
                 Text(
-                  "$time",
+                  "$_timeRemaining",
                   style: GoogleFonts.jua(
                     fontSize: 40,
                     fontWeight: FontWeight.w700,
-                    color: time <= 5 && isTurn ? kDangerColor : kTextColor,
+                    color: _timeRemaining <= 5 && widget.isTurn
+                        ? kDangerColor
+                        : kTextColor,
                   ),
                 ),
               ],
