@@ -1,31 +1,29 @@
+// lib/models/item_models.dart
+
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 
 enum ItemType { board, stones }
 
 abstract class CustomItem {
-  final String id;
-  final String name;
+  final String id, name;
   final int price;
   final ItemType type;
-  final String? effectId; // 특수 효과 식별자 추가
+  final String? effectId;
 
   CustomItem({
     required this.id,
     required this.name,
     required this.price,
     required this.type,
-    this.effectId, // 생성자에 추가
+    this.effectId,
   });
-
   Widget buildPreview(BuildContext context);
 }
 
 class BoardTheme extends CustomItem {
-  final Color boardColor;
-  final Color lineColor;
+  final Color boardColor, lineColor;
   final List<BoxShadow> boxShadows;
-
   BoardTheme({
     required super.id,
     required super.name,
@@ -33,9 +31,8 @@ class BoardTheme extends CustomItem {
     required this.boardColor,
     required this.lineColor,
     this.boxShadows = const [],
-    super.effectId, // 부모 생성자에 전달
+    super.effectId,
   }) : super(type: ItemType.board);
-
   @override
   Widget buildPreview(BuildContext context) {
     return Container(
@@ -50,11 +47,8 @@ class BoardTheme extends CustomItem {
 }
 
 class StoneTheme extends CustomItem {
-  final Gradient blackStoneGradient;
-  final Gradient whiteStoneGradient;
-  final List<BoxShadow> blackStoneShadows;
-  final List<BoxShadow> whiteStoneShadows;
-
+  final Gradient blackStoneGradient, whiteStoneGradient;
+  final List<BoxShadow> blackStoneShadows, whiteStoneShadows;
   StoneTheme({
     required super.id,
     required super.name,
@@ -63,9 +57,8 @@ class StoneTheme extends CustomItem {
     required this.whiteStoneGradient,
     this.blackStoneShadows = const [],
     this.whiteStoneShadows = const [],
-    super.effectId, // 부모 생성자에 전달
+    super.effectId,
   }) : super(type: ItemType.stones);
-
   @override
   Widget buildPreview(BuildContext context) {
     return Row(
@@ -94,7 +87,6 @@ class StoneTheme extends CustomItem {
   }
 }
 
-// 상점에서 판매될 아이템 목록
 final List<CustomItem> shopItems = [
   // --- 기본 아이템 (무료) ---
   BoardTheme(
@@ -118,13 +110,14 @@ final List<CustomItem> shopItems = [
     ),
   ),
 
-  // --- 일반 유료 아이템 ---
+  // --- ✨ 모든 유료 아이템에 effectId 추가 ✨ ---
   BoardTheme(
     id: 'board_cherry',
     name: '벚꽃 나무판',
     price: 100,
     boardColor: const Color(0xFFFFCDD2),
     lineColor: const Color(0xFFE57373),
+    effectId: 'cherry_blossom',
   ),
   BoardTheme(
     id: 'board_deep_sea',
@@ -132,6 +125,7 @@ final List<CustomItem> shopItems = [
     price: 150,
     boardColor: const Color(0xFF455A64),
     lineColor: const Color(0xFFB0BEC5),
+    effectId: 'deep_sea',
   ),
   StoneTheme(
     id: 'stones_glass',
@@ -145,6 +139,7 @@ final List<CustomItem> shopItems = [
       colors: [Color(0xDDFFFFFF), Color(0xAAEEEEEE)],
       stops: [0.1, 1.0],
     ),
+    effectId: 'glass_glint',
   ),
   StoneTheme(
     id: 'stones_gold',
@@ -164,23 +159,14 @@ final List<CustomItem> shopItems = [
         spreadRadius: 2,
       ),
     ],
+    effectId: 'gold_gleam',
   ),
-
-  // --- 삐까뻔쩍한 새로운 아이템들 ---
   BoardTheme(
     id: 'board_galaxy',
     name: '🌌 은하수 보드',
     price: 500,
     boardColor: const Color(0xFF1A237E),
     lineColor: const Color(0xFFE0F7FA),
-    boxShadows: [
-      BoxShadow(
-        color: Colors.deepPurple.withOpacity(0.8),
-        blurRadius: 20,
-        spreadRadius: 5,
-        offset: const Offset(0, 10),
-      ),
-    ],
     effectId: 'galaxy_stars',
   ),
   StoneTheme(
@@ -210,5 +196,67 @@ final List<CustomItem> shopItems = [
       ),
     ],
     effectId: 'diamond_sparkle',
+  ),
+  BoardTheme(
+    id: 'board_zen',
+    name: '🧘‍♀️ 젠가든 모래판',
+    price: 450,
+    boardColor: const Color(0xFFF5F5F5),
+    lineColor: const Color(0xFF9E9E9E),
+    effectId: 'drifting_leaf',
+  ),
+  StoneTheme(
+    id: 'stones_river',
+    name: '🪨 강가 조약돌',
+    price: 400,
+    blackStoneGradient: const RadialGradient(
+      colors: [Color(0xFF616161), Color(0xFF424242)],
+    ),
+    whiteStoneGradient: const RadialGradient(
+      colors: [Color(0xFFE0E0E0), Color(0xFFBDBDBD)],
+    ),
+  ),
+  BoardTheme(
+    id: 'board_enchanted',
+    name: '🌳 마법 숲 이끼',
+    price: 650,
+    boardColor: const Color(0xFF388E3C),
+    lineColor: const Color(0xFFA5D6A7),
+    boxShadows: [
+      BoxShadow(
+        color: Colors.greenAccent.withOpacity(0.5),
+        blurRadius: 15,
+        spreadRadius: 5,
+      ),
+    ],
+    effectId: 'glowing_lines',
+  ),
+  StoneTheme(
+    id: 'stones_orbs',
+    name: '✨ 마력 구슬',
+    price: 800,
+    blackStoneGradient: const RadialGradient(
+      colors: [Color(0xFF7E57C2), Color(0xFF4527A0)],
+      center: Alignment(0.3, -0.3),
+    ),
+    whiteStoneGradient: const RadialGradient(
+      colors: [Color(0xFF80DEEA), Color(0xFF00ACC1)],
+      center: Alignment(-0.3, 0.3),
+    ),
+    blackStoneShadows: [
+      BoxShadow(
+        color: Colors.purpleAccent.withOpacity(0.7),
+        blurRadius: 10,
+        spreadRadius: 3,
+      ),
+    ],
+    whiteStoneShadows: [
+      BoxShadow(
+        color: Colors.cyanAccent.withOpacity(0.7),
+        blurRadius: 10,
+        spreadRadius: 3,
+      ),
+    ],
+    effectId: 'swirling_energy',
   ),
 ];

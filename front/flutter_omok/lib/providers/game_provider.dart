@@ -80,6 +80,11 @@ class GameProvider extends ChangeNotifier {
             as StoneTheme;
   }
 
+  void reloadTheme() {
+    _loadTheme(); // 기존의 테마 로드 함수를 호출
+    notifyListeners(); // UI에 변경사항 알림
+  }
+
   void _loadInterstitialAd() {
     InterstitialAd.load(
       adUnitId: interstitialAdUnitId,

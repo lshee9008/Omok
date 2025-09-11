@@ -25,6 +25,7 @@ class BoardPainter extends CustomPainter {
     required this.stoneTheme,
   });
 
+  // 은하수 효과
   void _drawGalaxyEffect(Canvas canvas, Size size) {
     final random = Random(1);
     final starPaint = Paint()..color = Colors.white;
@@ -41,6 +42,65 @@ class BoardPainter extends CustomPainter {
     }
   }
 
+  // 벚꽃 효과
+  void _drawCherryBlossomEffect(Canvas canvas, Size size) {
+    final random = Random(2);
+    for (int i = 0; i < 15; i++) {
+      final petalPaint = Paint()
+        ..color = Colors.pink.shade100.withOpacity(
+          random.nextDouble() * 0.5 + 0.3,
+        );
+      final x =
+          (random.nextDouble() * 1.2 * size.width -
+              0.1 * size.width +
+              (continuousAnimationValue * size.width / 2)) %
+          size.width;
+      final y =
+          (random.nextDouble() * size.height +
+              (continuousAnimationValue * size.height)) %
+          size.height;
+      final r = continuousAnimationValue * 2 * pi + random.nextDouble() * pi;
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(r);
+      canvas.drawCircle(Offset.zero, 3 + random.nextDouble() * 3, petalPaint);
+      canvas.restore();
+    }
+  }
+
+  // 심해 효과
+  void _drawDeepSeaEffect(Canvas canvas, Size size) {
+    final random = Random(3);
+    for (int i = 0; i < 10; i++) {
+      final bubblePaint = Paint()
+        ..color = Colors.lightBlue.shade100.withOpacity(
+          random.nextDouble() * 0.3,
+        );
+      final x = random.nextDouble() * size.width;
+      final y =
+          size.height -
+          (random.nextDouble() * size.height +
+                  continuousAnimationValue * size.height) %
+              size.height;
+      final radius = 2 + random.nextDouble() * 4;
+      canvas.drawCircle(Offset(x, y), radius, bubblePaint);
+    }
+  }
+
+  // 젠가든 나뭇잎 효과
+  void _drawDriftingLeafEffect(Canvas canvas, Size size) {
+    final leafPaint = Paint()..color = Colors.brown.shade400;
+    final progress = continuousAnimationValue;
+    final x = size.width * progress;
+    final y = size.height * 0.5 + sin(progress * 2 * pi) * 50;
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.rotate(progress * 4 * pi);
+    canvas.drawOval(const Rect.fromLTWH(-15, -5, 30, 10), leafPaint);
+    canvas.restore();
+  }
+
+  // 다이아몬드 반짝임 효과
   void _drawDiamondSparkleEffect(Canvas canvas, Offset center, double radius) {
     final sparklePaint = Paint()
       ..color = Colors.white.withOpacity(0.9)
@@ -65,6 +125,50 @@ class BoardPainter extends CustomPainter {
     }
   }
 
+  // 유리알 반사광 효과
+  void _drawGlassGlintEffect(Canvas canvas, Offset center, double radius) {
+    if (placementAnimationValue > 0.5) {
+      final progress = (placementAnimationValue - 0.5) * 2;
+      final glintPaint = Paint()
+        ..color = Colors.white.withOpacity(1 - progress)
+        ..strokeWidth = 3.0;
+      final start = center + Offset(-radius, radius) * progress;
+      final end = center + Offset(radius, -radius) * progress;
+      canvas.drawLine(start, end, glintPaint);
+    }
+  }
+
+  // 황금알 반짝임 효과
+  void _drawGoldGleamEffect(Canvas canvas, Offset center, double radius) {
+    final progress = (sin(continuousAnimationValue * 2 * pi) + 1) / 2;
+    if (progress > 0.95) {
+      final gleamPaint = Paint()..color = Colors.white.withOpacity(0.8);
+      canvas.drawCircle(
+        center + Offset(-radius * 0.4, -radius * 0.4),
+        radius * 0.1,
+        gleamPaint,
+      );
+    }
+  }
+
+  // 마력 구슬 에너지 효과
+  void _drawSwirlingEnergyEffect(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    List<Color> colors,
+  ) {
+    final progress = continuousAnimationValue * 2 * pi;
+    final paint = Paint();
+    for (int i = 0; i < colors.length; i++) {
+      final angle = progress + (i * pi);
+      final energyCenter =
+          center + Offset(cos(angle) * radius * 0.4, sin(angle) * radius * 0.4);
+      paint.color = colors[i].withOpacity(0.7);
+      canvas.drawCircle(energyCenter, radius * 0.2, paint);
+    }
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final double squareSize = size.width / (boardSize - 1);
@@ -77,13 +181,35 @@ class BoardPainter extends CustomPainter {
       boardPaint,
     );
 
-    if (boardTheme.effectId == 'galaxy_stars') {
-      _drawGalaxyEffect(canvas, size);
+    // --- 보드 특수 효과 그리기 ---
+    switch (boardTheme.effectId) {
+      case 'galaxy_stars':
+        _drawGalaxyEffect(canvas, size);
+        break;
+      case 'cherry_blossom':
+        _drawCherryBlossomEffect(canvas, size);
+        break;
+      case 'deep_sea':
+        _drawDeepSeaEffect(canvas, size);
+        break;
+      case 'drifting_leaf':
+        _drawDriftingLeafEffect(canvas, size);
+        break;
     }
 
-    final Paint linePaint = Paint()
-      ..color = boardTheme.lineColor.withOpacity(0.9)
-      ..strokeWidth = 2.0;
+    // --- 라인 그리기 ---
+    final Paint linePaint;
+    if (boardTheme.effectId == 'glowing_lines') {
+      final glowAmount = (sin(continuousAnimationValue * 2 * pi) + 1.5) / 2.5;
+      linePaint = Paint()
+        ..color = boardTheme.lineColor.withOpacity(glowAmount * 0.8)
+        ..strokeWidth = 2.5
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowAmount * 4);
+    } else {
+      linePaint = Paint()
+        ..color = boardTheme.lineColor.withOpacity(0.9)
+        ..strokeWidth = 2.0;
+    }
     for (int i = 0; i < boardSize; i++) {
       canvas.drawLine(
         Offset(i * squareSize, 0),
@@ -97,6 +223,7 @@ class BoardPainter extends CustomPainter {
       );
     }
 
+    // 화점 그리기
     final Paint dotPaint = Paint()..color = boardTheme.lineColor;
     final double dotRadius = 5.0;
     final List<Point<int>> dotPositions = [
@@ -114,6 +241,7 @@ class BoardPainter extends CustomPainter {
       );
     }
 
+    // 돌 그리기
     final double stoneRadius = squareSize / 2.3;
     for (int i = 0; i < boardSize; i++) {
       for (int j = 0; j < boardSize; j++) {
@@ -149,8 +277,27 @@ class BoardPainter extends CustomPainter {
           );
           canvas.drawCircle(center, currentRadius, stonePaint);
 
-          if (stoneTheme.effectId == 'diamond_sparkle') {
-            _drawDiamondSparkleEffect(canvas, center, currentRadius);
+          // --- 돌 특수 효과 그리기 ---
+          switch (stoneTheme.effectId) {
+            case 'diamond_sparkle':
+              _drawDiamondSparkleEffect(canvas, center, currentRadius);
+              break;
+            case 'glass_glint':
+              _drawGlassGlintEffect(canvas, center, currentRadius);
+              break;
+            case 'gold_gleam':
+              _drawGoldGleamEffect(canvas, center, currentRadius);
+              break;
+            case 'swirling_energy':
+              _drawSwirlingEnergyEffect(
+                canvas,
+                center,
+                currentRadius,
+                (board[i][j] == Player.black)
+                    ? [Colors.purpleAccent, Colors.deepPurple]
+                    : [Colors.cyanAccent, Colors.lightBlue],
+              );
+              break;
           }
 
           if (isLastMove) {
@@ -170,6 +317,7 @@ class BoardPainter extends CustomPainter {
       }
     }
 
+    // 승리 라인 그리기
     if (winningLine.isNotEmpty && placementAnimationValue > 0) {
       final linePaint = Paint()
         ..color = kHighlightColor.withOpacity(0.9)

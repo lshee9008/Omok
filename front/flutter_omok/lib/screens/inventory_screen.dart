@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_omok/providers/game_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../models/item_models.dart';
 import '../services/locator.dart';
 import '../services/player_data.dart';
@@ -39,6 +41,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       await _playerData.setEquippedStones(item.id);
     }
     _loadPlayerData();
+
+    // ✨ 장착 후 GameProvider에 테마를 다시 불러오라고 알림
+    if (mounted) {
+      context.read<GameProvider>().reloadTheme();
+    }
   }
 
   @override
